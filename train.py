@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 from model import Unet
+from matplotlib import pyplot as plt
 from Utils import (
     load_checkpoint,
     save_checkpoint,
@@ -28,7 +29,7 @@ VAL_IMG_DIR = "Dataset/val/SegmentationImages/"
 VAL_MASK_DIR = "Dataset/val/SegmentationClass/"
 
 
-def train_fn(loader, model, optimizer, loss_fn, scaler):
+def train_fn(loader, model, optimizer, loss_fn, scaler, loss_plot):
     loop = tqdm(loader)
 
     for batch_idx, (data, targets) in enumerate(loop):
@@ -39,6 +40,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
         with torch.cuda.amp.autocast():
             predictions = model(data)
             loss = loss_fn(predictions, targets)
+        loss_plot.append(loss)
 
         # backward
         optimizer.zero_grad()
@@ -99,9 +101,9 @@ def main():
 
     check_accuracy(val_loader, model, device=DEVICE)
     scaler = torch.cuda.amp.GradScaler()
-
+    loss_plot = []
     for epoch in range(NUM_EPOCHS):
-        train_fn(train_loader, model, optimizer, loss_fn, scaler)
+        train_fn(train_loader, model, optimizer, loss_fn, scaler, loss_plot)
 
         # save model
         checkpoint = {
@@ -117,6 +119,8 @@ def main():
         save_predictions_as_imgs(
             val_loader, model, folder="saved_images/", device=DEVICE
         )
+    plt.plot(loss_plot)
+    plt.show()
 
 
 if __name__ == "__main__":
