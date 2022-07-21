@@ -2,6 +2,14 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 import numpy as np
+import cv2
+from Utils import (
+    load_checkpoint,
+    save_checkpoint,
+    get_loaders,
+    check_accuracy,
+    save_predictions_as_imgs,
+)
 
 
 class dataset(Dataset):
@@ -20,7 +28,8 @@ class dataset(Dataset):
                                                                            "png"))
         image = np.array(Image.open(image_path).convert("RGB"))
         mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
-        mask[mask == 255.0] = 1.0
+        mask[mask != 0.0] = 1.0
+        mask[mask == 0.0] = 0.0
         if self.transform is not None:
             augmentations = self.transform(image=image, mask=mask)
             image = augmentations["image"]
